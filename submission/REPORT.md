@@ -1,7 +1,7 @@
 # Lab 21 — Báo cáo fine-tuning và đánh giá
 
 **MSSV:** 2A202602731
-**Họ tên:** chưa được cung cấp
+**Họ tên:** Lê Duy Quân
 **Ngày đo:** 08/10/2026
 **Môi trường:** Google Colab, Tesla T4 14.6 GB, fp16
 **Base model:** unsloth/Qwen3.5-4B
