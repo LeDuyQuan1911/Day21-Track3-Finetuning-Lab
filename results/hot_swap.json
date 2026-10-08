@@ -1,0 +1,17 @@
+{
+  "ticket": "Cho mình hỏi, mình đặt chuột không dây mã đơn VN232232. Cho tôi trả lại. Gấp. Shop hỗ trợ tốt.",
+  "adapters": [
+    {
+      "adapter": "correct",
+      "prediction": "{\"intent\": \"doi_tra\", \"urgency\": \"cao\", \"product\": \"chuột không dây\", \"sentiment\": \"tich_cuc\"}"
+    },
+    {
+      "adapter": "attn_only",
+      "prediction": "{\"intent\": \"doi_tra\", \"urgency\": \"cao\", \"product\": \"chuột không dây\", \"sentiment\": \"tich_cuc\"}"
+    },
+    {
+      "adapter": "wrong_lr",
+      "prediction": "Dựa trên nội dung của ticket, đây là một yêu cầu liên quan đến việc **hoàn tiền** hoặc **trả lại hàng** sau khi đã mua sản phẩm.\n\nDưới đây là phân loại chi tiết:\n\n*   **Loại ticket:** Hỗ trợ khách hàng / Xử lý đơn hàng\n*   **Chủ đề chính:** Hoàn tiền / Trả lại hàng\n*   **Sản phẩm liên quan:** Chuột không dây\n*   **Mã đơn:** VN232232\n*   **Mức độ ưu tiên:** Cao (Khách hàng dùng từ \"Gấp\")\n*   **Đánh giá dịch vụ:** Tốt (Khách hàng khen \"Shop hỗ trợ tốt\")\n\n**Tóm tắt nội dung:** Khách hàng muốn được xử lý"
+    }
+  ]
+}

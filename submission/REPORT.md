@@ -79,4 +79,4 @@ Nếu có thêm hai giờ, tôi sẽ bổ sung replay 1%, 3% và 5%, giữ nguy�
 
 ## Phụ lục: trạng thái thưởng
 
-NB6 merge và hot-swap chỉ được đánh dấu hoàn tất khi results/merge_check.json và results/hot_swap.json có từ lần chạy thật. Tôi không khai báo đã làm dataset miền riêng, reasoning-trace collapse, quét rank hoặc HF Hub khi chưa có artefact tương ứng.
+**NB6 hoàn tất trên T4.** results/merge_check.json ghi target trước merge = 0.965, sau merge = 0.965, delta = 0.000 trên đủ 50 mẫu, đạt tolerance 0.010. results/hot_swap.json ghi một base fp16 đã lần lượt dùng ba adapter correct, attn_only và wrong_lr cho cùng một ticket. Hai adapter đầu trả JSON đúng; wrong_lr trả lời bằng văn xuôi, phù hợp với format 0.000 của đối chứng đó. Model merge đã được lưu trong Colab nhưng không đưa vào ZIP vì riêng trọng số đầy đủ gần 8 GB; ZIP chứa adapter correct theo định dạng nộp A. Tôi không khai báo đã làm dataset miền riêng, reasoning-trace collapse, quét rank hoặc HF Hub khi chưa có artefact tương ứng.
