@@ -11,7 +11,7 @@
 # target **và** không tụt general capability quá ngưỡng (deck §6.3).
 
 # %%
-import json, os, pathlib, sys
+import hashlib, json, os, pathlib, sys
 sys.path.insert(0, str(pathlib.Path.cwd() / "src"))
 sys.path.insert(0, str(pathlib.Path.cwd().parent / "src"))
 
@@ -33,6 +33,17 @@ if EVAL_LIMIT:
     target, regression = target[:EVAL_LIMIT], regression[:EVAL_LIMIT]
 
 frozen = json.loads((ROOT / "results" / "baselines_frozen.json").read_text(encoding="utf-8"))
+for name in ("eval_target.jsonl", "eval_regression.jsonl"):
+    actual = hashlib.sha256((ROOT / "data" / name).read_bytes()).hexdigest()
+    if frozen.get(name.removesuffix(".jsonl") + "_sha256") != actual:
+        raise SystemExit(f"{name} changed since NB2; frozen baseline comparison is invalid")
+if frozen.get("optimized_prompt_sha") != hashlib.sha256(generate.OPTIMIZED_PROMPT.encode()).hexdigest()[:16]:
+    raise SystemExit("Optimized prompt changed since NB2; frozen baseline comparison is invalid")
+if frozen.get("model") != TIER.model_id:
+    raise SystemExit("Base model differs from NB2; frozen baseline comparison is invalid")
+preds_b = frozen.get("baseline_b_target_predictions")
+if not isinstance(preds_b, list) or len(preds_b) != len(target):
+    raise SystemExit("NB2 must freeze per-item baseline (b) predictions before training; re-run NB2 on an untouched base/eval set")
 base_b = ev.GroupScores(**{k: v for k, v in frozen["baseline_b"].items() if k != "extra"})
 base_a = ev.GroupScores(**{k: v for k, v in frozen["baseline_a"].items() if k != "extra"})
 
@@ -182,20 +193,26 @@ report.write_json(autopsy, "autopsy.json", results_dir=ROOT / "results")
 # %% [markdown]
 # ## 5. Định tính — bắt buộc có cả ca THUA
 #
-# Chọn 5 ví dụ: ≥2 ca fine-tune thắng, **≥2 ca fine-tune thua**. Chỉ chọn ca thắng là
+# Chọn ít nhất 5 ví dụ: **≥2 ca fine-tune thua nếu dữ liệu thật có đủ**. Chỉ chọn ca thắng là
 # cherry-pick và bị trừ điểm ở mục Evaluation Quality.
 
 # %%
 rows = []
-for i, (p, r) in enumerate(zip(preds_ft, target)):
+for i, (p, p_b, r) in enumerate(zip(preds_ft, preds_b, target)):
     s_ft = ev.triage_field_accuracy(p, r["label"])
-    rows.append({"i": i, "ticket": r["input"][:70], "ft_score": round(s_ft, 2),
-                 "ft_pred": p.replace("\n", " ")[:90]})
-rows.sort(key=lambda x: x["ft_score"])
-print("--- 3 ca TỆ NHẤT (bắt buộc đưa vào report) ---")
-print(report.markdown_table(rows[:3], ["i", "ticket", "ft_score", "ft_pred"]))
-print("\n--- 3 ca TỐT NHẤT ---")
-print(report.markdown_table(rows[-3:], ["i", "ticket", "ft_score", "ft_pred"]))
+    s_b = ev.triage_field_accuracy(p_b, r["label"])
+    rows.append({"i": i, "ticket": r["input"], "label": r["label"],
+                 "baseline_b_score": round(s_b, 4), "ft_score": round(s_ft, 4),
+                 "ft_minus_b": round(s_ft - s_b, 4),
+                 "baseline_b_pred": p_b, "ft_pred": p})
+rows.sort(key=lambda x: (x["ft_minus_b"], x["i"]))
+losses = [r for r in rows if r["ft_minus_b"] < 0]
+wins = [r for r in reversed(rows) if r["ft_minus_b"] > 0]
+selected = (losses[:2] + wins[:2])
+selected += [r for r in rows if r not in selected][:max(0, 5 - len(selected))]
+print(f"FT thua baseline (b) ở {len(losses)}/{len(rows)} ca; "
+      f"{len(losses) < 2 and 'không đủ 2 ca để nêu theo rubric' or 'đã chọn ít nhất 2 ca thua'}")
+print(report.markdown_table(selected, ["i", "ticket", "baseline_b_score", "ft_score", "ft_minus_b"]))
 report.write_json(rows, "qualitative.json", results_dir=ROOT / "results")
 
 # %% [markdown]

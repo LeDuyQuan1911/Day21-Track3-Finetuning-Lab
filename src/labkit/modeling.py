@@ -124,7 +124,9 @@ def count_lora_params(model, target_suffixes: list[str], r: int) -> int:
     for lin in iter_linear_modules(model):
         if is_vision(lin.name) or is_head(lin.name):
             continue
-        if lin.name.split(".")[-1] in targets:
+        # resolve_target_modules returns full names when a vision layer has the same
+        # suffix. Parameter accounting must use those full names as well.
+        if lin.name in targets or lin.name.split(".")[-1] in targets:
             total += r * lin.lora_params_at
     return total
 

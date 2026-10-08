@@ -16,7 +16,7 @@
 # | (c) | bản fine-tune | đo ở NB5 |
 
 # %%
-import json, os, pathlib, sys
+import hashlib, json, os, pathlib, sys
 sys.path.insert(0, str(pathlib.Path.cwd() / "src"))
 sys.path.insert(0, str(pathlib.Path.cwd().parent / "src"))
 
@@ -25,6 +25,12 @@ from labkit.config import get_tier
 
 ROOT = pathlib.Path.cwd() if (pathlib.Path.cwd() / "data").exists() else pathlib.Path.cwd().parent
 TIER = get_tier(os.environ.get("COMPUTE_TIER", "T4"))
+
+# The baseline is only meaningful if its predictions were frozen before any adapter
+# was trained. Refuse an accidental re-freeze after NB3/NB4 has started.
+if any((ROOT / "adapters" / key / "adapter_model.safetensors").exists()
+       for key in ("correct", "attn_only", "wrong_lr", "qlora")):
+    raise SystemExit("Adapter already exists. Baselines must be measured and frozen before training.")
 
 def load_jsonl(p):
     return [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
@@ -88,8 +94,13 @@ frozen = {
     "model": TIER.model_id,
     "baseline_a": scores_a.as_dict(),
     "baseline_b": scores_b.as_dict(),
-    "optimized_prompt_sha": __import__("hashlib").sha256(
+    # Keep the per-item predictions from the pre-training baseline. NB5 needs these
+    # to show actual cases where the fine-tune loses to (b), not merely low FT scores.
+    "baseline_b_target_predictions": preds_b,
+    "optimized_prompt_sha": hashlib.sha256(
         generate.OPTIMIZED_PROMPT.encode()).hexdigest()[:16],
+    "eval_target_sha256": hashlib.sha256((ROOT / "data" / "eval_target.jsonl").read_bytes()).hexdigest(),
+    "eval_regression_sha256": hashlib.sha256((ROOT / "data" / "eval_regression.jsonl").read_bytes()).hexdigest(),
     "n_target": len(target),
     "n_regression": len(regression),
     "eval_limit": EVAL_LIMIT or None,

@@ -38,6 +38,14 @@ from labkit.config import SPECS, get_tier, training_epochs
 ROOT = pathlib.Path.cwd() if (pathlib.Path.cwd() / "data").exists() else pathlib.Path.cwd().parent
 TIER = get_tier(os.environ.get("COMPUTE_TIER", "T4"))
 SPEC = SPECS["correct"]
+frozen_path = ROOT / "results" / "baselines_frozen.json"
+if not frozen_path.exists():
+    raise SystemExit("Chạy NB2 và đóng băng baseline (b) trước khi train.")
+frozen = json.loads(frozen_path.read_text(encoding="utf-8"))
+if frozen.get("model") != TIER.model_id:
+    raise SystemExit("Base model của NB2 khác model đang train; chạy lại NB1/NB2 với cùng model.")
+if frozen.get("baseline_b", {}).get("target", 0) <= frozen.get("baseline_a", {}).get("target", 0):
+    raise SystemExit("Baseline (b) chưa vượt (a); cải thiện prompt (b) và đo lại NB2 trước khi train.")
 print(f"{TIER.name} · {TIER.model_id} · {SPEC.label}")
 print(device.banner())      # which precision is ACTUALLY being used, and why
 

@@ -69,7 +69,8 @@ merged.save_pretrained(out); tok.save_pretrained(out)
 report.write_json({"before_merge": before, "after_merge": after, "delta": delta,
                    "tolerance": TOL, "n": len(target)},
                   "merge_check.json", results_dir=ROOT / "results")
-del merged; generate.free_memory()
+del merged, model
+generate.free_memory()
 
 # %% [markdown]
 # ## 3. Một base, nhiều adapter — hoán đổi theo request
@@ -82,7 +83,7 @@ model, tok = generate.load_base(TIER)
 model = PeftModel.from_pretrained(model, str(ROOT / "adapters" / "correct"),
                                   adapter_name="correct")
 available = ["correct"]
-for extra in ("attn_only", "qlora"):
+for extra in ("attn_only", "wrong_lr"):
     d = ROOT / "adapters" / extra
     if d.exists():
         model.load_adapter(str(d), adapter_name=extra)
@@ -90,10 +91,15 @@ for extra in ("attn_only", "qlora"):
 
 print("adapter đang nạp:", available)
 ticket = target[0]["input"]
+swap_results = []
 for name in available:
     model.set_adapter(name)
     out, _ = generate.generate_batch(model, tok, [ticket], system=generate.NAIVE_PROMPT)
     print(f"\n[{name}] -> {out[0][:140]}")
+    swap_results.append({"adapter": name, "prediction": out[0]})
+assert len(swap_results) >= 2, "Cần ít nhất hai adapter để chứng minh hot-swap"
+report.write_json({"ticket": ticket, "adapters": swap_results},
+                  "hot_swap.json", results_dir=ROOT / "results")
 
 # %% [markdown]
 # ## ✅ Checkpoint NB6

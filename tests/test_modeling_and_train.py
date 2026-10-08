@@ -54,6 +54,16 @@ def test_suffix_collision_falls_back_to_full_names():
     assert not any("visual" in t for t in targets)
 
 
+def test_full_name_targets_keep_parameter_budget_accounting():
+    m = _Model(vision_uses_same_names=True)
+    text = modeling.resolve_target_modules(m, "text-linear")
+    qv = modeling.resolve_target_modules(m, "attn-only")
+    budget = modeling.count_lora_params(m, text, 16)
+    assert budget > 0
+    matched = modeling.count_lora_params(m, qv, modeling.matched_rank(m, text, 16, qv))
+    assert abs(matched - budget) / budget < 0.05
+
+
 def test_attn_only_is_just_q_and_v():
     assert modeling.resolve_target_modules(_Model(), "attn-only") == ["q_proj", "v_proj"]
 
